@@ -1,0 +1,24 @@
+# Secrets — never commit
+.env
+
+# Virtual environments
+.venv/
+
+# Python
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+.pytest_cache/
+
+# App temp/working files
+tmp/
+*.wav
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

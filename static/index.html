@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Consent Video Verification</title>
+<style>
+  :root{
+    --bg:#f6f7f9; --panel:#fff; --border:#e3e6ea; --text:#1a1d21; --muted:#6b7280;
+    --accent:#2f6feb; --pass:#0f7b3f; --pass-bg:#e8f6ed; --fail:#b3261e; --fail-bg:#fdecea;
+    --review:#8a5a00; --review-bg:#fff5e0; --code:#f2f4f7;
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme=light]){
+      --bg:#15171a; --panel:#1d2024; --border:#2e3338; --text:#e8eaed; --muted:#9aa3ad;
+      --accent:#5b91ff; --pass:#6ee7a0; --pass-bg:#12301f; --fail:#ff9b93; --fail-bg:#3a1512;
+      --review:#ffcf6b; --review-bg:#3a2c0a; --code:#24282d;
+    }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);
+    font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    padding:32px 20px 64px}
+  .wrap{max-width:820px;margin:0 auto}
+  h1{font-size:22px;margin:0 0 4px}
+  .sub{color:var(--muted);font-size:14px;margin:0 0 24px}
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:10px;
+    padding:20px;margin-bottom:18px}
+  label{display:block;font-weight:600;font-size:13px;margin:0 0 6px}
+  input[type=text],select,input[type=file]{width:100%;padding:9px 11px;font:inherit;
+    color:var(--text);background:var(--bg);border:1px solid var(--border);border-radius:7px}
+  input[type=file]{padding:8px}
+  .row{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:16px}
+  .row>div{flex:1;min-width:200px}
+  button{background:var(--accent);color:#fff;border:0;border-radius:7px;
+    padding:11px 22px;font:600 15px/1 inherit;cursor:pointer}
+  button:disabled{opacity:.55;cursor:not-allowed}
+  .hint{color:var(--muted);font-size:12.5px;margin-top:6px}
+  .stmt{background:var(--code);border-radius:7px;padding:12px 14px;margin-top:6px}
+  .stmt ol{margin:0;padding-left:20px}
+  .stmt li{margin:2px 0}
+  .verdict{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;
+    border-radius:8px;padding:14px 16px;margin-bottom:18px}
+  .verdict b{font-size:24px;letter-spacing:.5px}
+  .v-PASS{background:var(--pass-bg);color:var(--pass)}
+  .v-FAIL{background:var(--fail-bg);color:var(--fail)}
+  .v-REVIEW{background:var(--review-bg);color:var(--review)}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--border);
+    vertical-align:top}
+  th{width:40%;font-weight:600;color:var(--muted)}
+  h2{font-size:15px;margin:22px 0 8px}
+  h2:first-child{margin-top:0}
+  pre{background:var(--code);border-radius:7px;padding:14px;overflow-x:auto;
+    font:12.5px/1.5 ui-monospace,SFMono-Regular,Consolas,monospace;margin:0;
+    white-space:pre-wrap;word-break:break-word}
+  .err{background:var(--fail-bg);color:var(--fail);border-radius:7px;padding:13px 15px}
+  .spin{display:inline-block;width:14px;height:14px;vertical-align:-2px;
+    border:2px solid currentColor;border-right-color:transparent;border-radius:50%;
+    animation:s .7s linear infinite;margin-right:8px}
+  @keyframes s{to{transform:rotate(360deg)}}
+  details{margin-top:10px}
+  summary{cursor:pointer;font-weight:600;font-size:14px}
+  .tag{font-size:12px;font-weight:600;padding:2px 7px;border-radius:5px;background:var(--code)}
+  ul.ev{margin:6px 0 0;padding-left:20px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>AI Video Consent Verification</h1>
+  <p class="sub">Upload a consent video to verify the spoken statement, check for prompting
+    or other people present, and assess recording quality.</p>
+
+  <form class="card" id="form">
+    <div class="row">
+      <div>
+        <label for="name">Expected name</label>
+        <input type="text" id="name" required placeholder="e.g. Rohit Sharma" autocomplete="off">
+      </div>
+      <div>
+        <label for="lang">Language</label>
+        <select id="lang">
+          <option value="auto">Auto-detect</option>
+          <option value="english">English</option>
+          <option value="hindi">Hindi</option>
+        </select>
+      </div>
+    </div>
+
+    <div style="margin-bottom:16px">
+      <label for="video">Consent video</label>
+      <input type="file" id="video" accept="video/*" required>
+      <p class="hint">Video file up to 200&nbsp;MB. Analysis usually takes 1&ndash;3 minutes.
+        The upload is deleted from the server as soon as analysis finishes.</p>
+    </div>
+
+    <details style="margin-bottom:18px">
+      <summary>Required statement</summary>
+      <div class="stmt">
+        <p class="hint" style="margin:0 0 6px">English &mdash; said in this order:</p>
+        <ol>
+          <li>I am &lt;name&gt;</li>
+          <li>I agree with the terms and conditions</li>
+          <li>I am fully aware of the rules and regulations</li>
+        </ol>
+        <p class="hint" style="margin:10px 0 6px">Hindi:</p>
+        <ol>
+          <li>&#2350;&#2375;&#2352;&#2366; &#2344;&#2366;&#2350; &lt;name&gt; &#2361;&#2376;</li>
+          <li>&#2350;&#2376;&#2306; &#2344;&#2367;&#2351;&#2350; &#2324;&#2352; &#2358;&#2352;&#2381;&#2340;&#2379;&#2306; &#2360;&#2375; &#2360;&#2361;&#2350;&#2340; &#2361;&#2370;&#2306;</li>
+          <li>&#2350;&#2376;&#2306; &#2344;&#2367;&#2351;&#2350;&#2379;&#2306; &#2324;&#2352; &#2357;&#2367;&#2344;&#2367;&#2351;&#2350;&#2379;&#2306; &#2360;&#2375; &#2346;&#2370;&#2352;&#2368; &#2340;&#2352;&#2361; &#2309;&#2357;&#2327;&#2340; &#2361;&#2370;&#2306;</li>
+        </ol>
+      </div>
+    </details>
+
+    <button type="submit" id="go">Analyze video</button>
+  </form>
+
+  <div id="out"></div>
+</div>
+
+<script>
+const MAX_BYTES = 200 * 1024 * 1024;
+const form = document.getElementById('form');
+const btn  = document.getElementById('go');
+const out  = document.getElementById('out');
+
+const ENTITIES = { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' };
+const esc = s => String(s === null || s === undefined ? '' : s)
+  .replace(/[&<>"']/g, c => ENTITIES[c]);
+
+const yn = v => v === true ? 'Yes' : v === false ? 'No' : esc(v);
+
+function error(msg){
+  out.innerHTML = '<div class="card err">' + esc(msg) + '</div>';
+}
+
+function rows(pairs){
+  const body = pairs
+    .filter(p => p[1] !== undefined && p[1] !== null && p[1] !== '')
+    .map(p => '<tr><th>' + esc(p[0]) + '</th><td>' + p[1] + '</td></tr>')
+    .join('');
+  return '<table>' + body + '</table>';
+}
+
+function evidence(list){
+  if (!Array.isArray(list) || !list.length) return '';
+  return '<ul class="ev">' + list.map(e =>
+    '<li><span class="tag">' + esc(e.timestamp || 'unknown') + '</span> ' +
+    esc(e.observation) + '</li>').join('') + '</ul>';
+}
+
+function render(data){
+  const r = data.result || {};
+  const env = r.environment || {};
+  const d = ['PASS','FAIL','REVIEW'].indexOf(r.decision) >= 0 ? r.decision : 'REVIEW';
+
+  let html = '<div class="verdict v-' + d + '"><b>' + esc(r.decision) + '</b>' +
+    '<span>confidence ' + esc(r.confidence) + '</span></div>';
+
+  html += '<div class="card"><h2>Statement</h2>' + rows([
+    ['Status', esc(r.statement_status)],
+    ['Name detected', esc(r.name_detected)],
+    ['Expected name', esc(r.expected_name)],
+    ['Name matches', yn(r.name_matches)],
+    ['Complete', yn(r.statement_complete)],
+    ['Order correct', yn(r.statement_order_correct)],
+    ['Missing portions', (r.missing_portions || []).map(esc).join('; ')],
+    ['Reordered chunks', (r.reordered_chunks || []).map(esc).join('; ')],
+    ['Detected language', esc(r.language)],
+    ['Mixed language', yn(r.mixed_language_detected)],
+    ['Hesitation', yn(r.hesitation_detected)],
+    ['Self-correction', yn(r.self_correction_detected)]
+  ]);
+
+  if (Array.isArray(r.statement_evidence) && r.statement_evidence.length){
+    html += '<h2>Statement evidence</h2><ul class="ev">' +
+      r.statement_evidence.map(e =>
+        '<li><span class="tag">' + esc(e.start) + '&ndash;' + esc(e.end) + '</span> ' +
+        esc(e.chunk) + ' &rarr; &ldquo;' + esc(e.matched_text) + '&rdquo;</li>'
+      ).join('') + '</ul>';
+  }
+  html += '</div>';
+
+  html += '<div class="card"><h2>Prompting</h2>' + rows([
+    ['Detected', esc(r.prompting_detected)],
+    ['Reasoning', esc(r.prompting_reasoning)]
+  ]) + evidence(r.prompting_evidence);
+
+  html += '<h2>Other people present</h2>' + rows([
+    ['Present (fused)', esc(r.other_person_present)],
+    ['Visible', esc(r.other_person_visible)],
+    ['Audible', esc(r.other_person_audible)],
+    ['Approx. count', esc(r.approx_other_people_count)],
+    ['Distinct speakers heard', esc(r.distinct_speakers_detected)],
+    ['Audio/video conflict', yn(r.other_person_audio_video_conflict)],
+    ['Reasoning', esc(r.other_person_reasoning)]
+  ]) + evidence(r.other_person_evidence) + '</div>';
+
+  html += '<div class="card"><h2>Recording &amp; environment</h2>' + rows([
+    ['Video quality', esc(r.video_quality)],
+    ['Quality notes', esc(r.video_quality_notes)],
+    ['Continuous recording', esc(r.continuous_recording)],
+    ['Environment', esc(env.description)],
+    ['Indoor / outdoor', esc(env.indoor_outdoor)],
+    ['Socioeconomic assessment', esc(env.socioeconomic_assessment)],
+    ['Evidence sufficient', yn(env.evidence_sufficient)]
+  ]);
+
+  if (Array.isArray(r.visual_observations) && r.visual_observations.length){
+    html += '<h2>Visual observations</h2><ul class="ev">' +
+      r.visual_observations.map(o => '<li>' + esc(
+        typeof o === 'string' ? o : (o.observation || JSON.stringify(o))
+      ) + '</li>').join('') + '</ul>';
+  }
+  html += '</div>';
+
+  html += '<div class="card"><h2>Transcript</h2><pre>' +
+    esc(r.transcript || '—') + '</pre></div>';
+
+  if (data.human_readable_report){
+    html += '<div class="card"><details><summary>Human-readable report</summary>' +
+      '<pre style="margin-top:10px">' + esc(data.human_readable_report) +
+      '</pre></details></div>';
+  }
+  html += '<div class="card"><details><summary>Raw JSON</summary>' +
+    '<pre style="margin-top:10px">' + esc(JSON.stringify(r, null, 2)) +
+    '</pre></details></div>';
+
+  out.innerHTML = html;
+}
+
+form.addEventListener('submit', async function(ev){
+  ev.preventDefault();
+
+  const file = document.getElementById('video').files[0];
+  if (!file){ error('Please choose a video file.'); return; }
+  if (file.size > MAX_BYTES){
+    error('That file is ' + (file.size / 1048576).toFixed(1) +
+          ' MB. The limit is 200 MB.');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spin"></span>Analyzing&hellip;';
+  out.innerHTML = '<div class="card"><span class="spin"></span>' +
+    'Transcribing audio and analyzing video. This can take a few minutes ' +
+    '&mdash; keep this tab open.</div>';
+
+  const body = new FormData();
+  body.append('video', file);
+  body.append('expected_name', document.getElementById('name').value.trim());
+  body.append('language_hint', document.getElementById('lang').value);
+
+  try {
+    const res = await fetch('analyze-consent-video', { method: 'POST', body: body });
+    const text = await res.text();
+    let data = null;
+    try { data = JSON.parse(text); } catch (e) { /* non-JSON error body */ }
+
+    if (!res.ok){
+      const detail = (data && data.detail) || text.slice(0, 400) || res.statusText;
+      error('Error ' + res.status + ': ' + detail);
+    } else if (!data || !data.result){
+      error('Unexpected response from the server.');
+    } else {
+      render(data);
+    }
+  } catch (e) {
+    error('Request failed: ' + e.message +
+          ' — the server may have timed out or restarted.');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Analyze video';
+  }
+});
+</script>
+</body>
+</html>
