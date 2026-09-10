@@ -3,7 +3,7 @@ services:
     name: consent-video-system
     runtime: docker
     dockerfilePath: ./Dockerfile
-    plan: starter          # 512MB/free tier is tight for video + ffmpeg; starter is safer
+    plan: free          # 512MB/free tier is tight for video + ffmpeg; starter is safer
     healthCheckPath: /health
     envVars:
       - key: ELEVENLABS_API_KEY
